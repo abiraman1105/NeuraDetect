@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}New Scan — NeuroScan AI{% endblock %}
+{% block page_title %}New Scan{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-h1">Upload MRI Scan</h1>
+  <p class="page-sub">Submit a brain MRI for automated microbleed analysis</p>
+</div>
+
+<div class="upload-layout">
+  <div class="card upload-card">
+    <form method="POST" enctype="multipart/form-data" id="upload-form">
+
+      <!-- Drop zone -->
+      <div class="dropzone" id="dropzone" onclick="document.getElementById('mri_image').click()">
+        <div class="dz-inner" id="dz-inner">
+          <div class="dz-icon"><i class="fa-solid fa-brain"></i></div>
+          <p class="dz-title">Drop MRI image here</p>
+          <p class="dz-sub">or click to browse — PNG, JPG, BMP, TIFF</p>
+          <div class="dz-formats"><span>PNG</span><span>JPG</span><span>BMP</span><span>TIFF</span></div>
+        </div>
+        <img id="dz-preview" class="dz-preview" src="" alt="preview" style="display:none"/>
+      </div>
+      <input type="file" id="mri_image" name="mri_image" accept="image/*" style="display:none" onchange="previewFile(this)"/>
+
+      <!-- Patient info -->
+      <div class="form-section">
+        <h4 class="form-section-title"><i class="fa-solid fa-user-injured"></i> Patient Information</h4>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Patient Name <span class="required">*</span></label>
+            <input type="text" name="patient_name" placeholder="e.g. John Doe" required/>
+          </div>
+          <div class="form-group">
+            <label>Patient ID</label>
+            <input type="text" name="patient_id" placeholder="e.g. PT-20240101"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Clinical Notes</label>
+          <textarea name="notes" rows="3" placeholder="Optional — symptoms, history, scan type…"></textarea>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary btn-lg btn-full" id="submit-btn">
+        <i class="fa-solid fa-magnifying-glass"></i> Analyse Scan
+      </button>
+    </form>
+  </div>
+
+  <!-- Info panel -->
+  <div class="upload-info">
+    <div class="card info-card">
+      <h4><i class="fa-solid fa-circle-info"></i> How it works</h4>
+      <div class="info-steps">
+        <div class="info-step"><span class="step-num">1</span><span>Upload a T2* or SWI MRI image</span></div>
+        <div class="info-step"><span class="step-num">2</span><span>ResNet-18 analyses the scan</span></div>
+        <div class="info-step"><span class="step-num">3</span><span>Results saved to patient record</span></div>
+        <div class="info-step"><span class="step-num">4</span><span>Review confidence scores</span></div>
+      </div>
+    </div>
+    <div class="card info-card severity-legend">
+      <h4><i class="fa-solid fa-bars-staggered"></i> Severity Classes</h4>
+      {% set colors = ['#10b981','#f59e0b','#f97316','#ef4444'] %}
+      {% set classes = ['No Microbleed','Microbleed - Mild','Microbleed - Moderate','Microbleed - Severe'] %}
+      {% for i in range(4) %}
+      <div class="legend-item">
+        <span class="legend-dot" style="background:{{ colors[i] }}"></span>
+        <span>{{ classes[i] }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const dz = document.getElementById('dropzone');
+const dzInner = document.getElementById('dz-inner');
+const preview = document.getElementById('dz-preview');
+
+function previewFile(input){
+  if(input.files && input.files[0]){
+    const reader = new FileReader();
+    reader.onload = e => {
+      preview.src = e.target.result;
+      preview.style.display = 'block';
+      dzInner.style.display = 'none';
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', ()=> dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e=>{
+  e.preventDefault(); dz.classList.remove('drag-over');
+  const fi = document.getElementById('mri_image');
+  fi.files = e.dataTransfer.files;
+  previewFile(fi);
+});
+
+document.getElementById('upload-form').addEventListener('submit', ()=>{
+  const btn = document.getElementById('submit-btn');
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analysing…';
+  btn.disabled = true;
+});
+</script>
+{% endblock %}

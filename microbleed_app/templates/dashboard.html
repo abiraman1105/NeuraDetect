@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — NeuroScan AI{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-h1">Overview <span class="pulse-dot"></span></h1>
+  <p class="page-sub">Real-time microbleed detection analytics</p>
+</div>
+
+<!-- Stat cards -->
+<div class="stat-grid">
+  <div class="stat-card stat-blue">
+    <div class="stat-icon"><i class="fa-solid fa-images"></i></div>
+    <div class="stat-body">
+      <span class="stat-value">{{ stats.total }}</span>
+      <span class="stat-label">Total Scans</span>
+    </div>
+    <div class="stat-bg-icon"><i class="fa-solid fa-images"></i></div>
+  </div>
+  <div class="stat-card stat-green">
+    <div class="stat-icon"><i class="fa-solid fa-circle-check"></i></div>
+    <div class="stat-body">
+      <span class="stat-value">{{ stats.no_bleed }}</span>
+      <span class="stat-label">No Microbleed</span>
+    </div>
+    <div class="stat-bg-icon"><i class="fa-solid fa-circle-check"></i></div>
+  </div>
+  <div class="stat-card stat-red">
+    <div class="stat-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
+    <div class="stat-body">
+      <span class="stat-value">{{ stats.detected }}</span>
+      <span class="stat-label">Microbleeds Detected</span>
+    </div>
+    <div class="stat-bg-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
+  </div>
+  <div class="stat-card stat-amber">
+    <div class="stat-icon"><i class="fa-solid fa-percent"></i></div>
+    <div class="stat-body">
+      <span class="stat-value">{{ stats.detection_rate }}%</span>
+      <span class="stat-label">Detection Rate</span>
+    </div>
+    <div class="stat-bg-icon"><i class="fa-solid fa-percent"></i></div>
+  </div>
+</div>
+
+<!-- Chart + Recent -->
+<div class="dash-grid">
+  <div class="card chart-card">
+    <div class="card-header">
+      <h3><i class="fa-solid fa-chart-pie"></i> Distribution by Class</h3>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="classChart" height="260"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fa-solid fa-clock-rotate-left"></i> Recent Scans</h3>
+      <a href="{{ url_for('history') }}" class="card-link">View all <i class="fa-solid fa-arrow-right"></i></a>
+    </div>
+    <div class="recent-list">
+      {% for scan in recent %}
+      <a href="{{ url_for('result', scan_id=scan.id) }}" class="recent-item">
+        <div class="recent-thumb">
+          <img src="{{ url_for('static', filename='uploads/' ~ scan.image_filename) }}" alt="scan"/>
+        </div>
+        <div class="recent-info">
+          <span class="recent-patient">{{ scan.patient_name }}</span>
+          <span class="recent-date">{{ scan.created_at.strftime('%b %d, %Y  %H:%M') }}</span>
+        </div>
+        <span class="badge" style="background:{{ class_colors[scan.result_class] }}22;color:{{ class_colors[scan.result_class] }};border:1px solid {{ class_colors[scan.result_class] }}44">
+          {{ class_names[scan.result_class] }}
+        </span>
+      </a>
+      {% else %}
+      <div class="empty-state"><i class="fa-solid fa-image"></i><p>No scans yet</p></div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Quick action -->
+<div class="quick-action">
+  <a href="{{ url_for('upload') }}" class="btn-primary btn-lg">
+    <i class="fa-solid fa-plus"></i> Analyse New MRI Scan
+  </a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+fetch('/api/stats').then(r=>r.json()).then(data=>{
+  const ctx = document.getElementById('classChart').getContext('2d');
+  new Chart(ctx,{
+    type:'doughnut',
+    data:{
+      labels: data.labels,
+      datasets:[{
+        data: data.data,
+        backgroundColor: data.colors.map(c=>c+'33'),
+        borderColor: data.colors,
+        borderWidth: 2,
+        hoverOffset: 8
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{
+          position:'bottom',
+          labels:{ color:'#94a3b8', font:{family:'DM Sans',size:12}, padding:16, boxWidth:12, boxHeight:12 }
+        }
+      },
+      cutout:'65%'
+    }
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Scan Result — NeuroScan AI{% endblock %}
+{% block page_title %}Scan Result{% endblock %}
+
+{% block content %}
+{% set color = class_colors[scan.result_class] %}
+{% set label = class_names[scan.result_class] %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-h1">Analysis Result</h1>
+    <p class="page-sub">Scan #{{ scan.id }} — {{ scan.created_at.strftime('%B %d, %Y at %H:%M') }}</p>
+  </div>
+  <div class="page-actions">
+    <a href="{{ url_for('upload') }}" class="btn-secondary"><i class="fa-solid fa-plus"></i> New Scan</a>
+    <a href="{{ url_for('history') }}" class="btn-secondary"><i class="fa-solid fa-list"></i> History</a>
+  </div>
+</div>
+
+<div class="result-layout">
+  <!-- Image -->
+  <div class="card result-image-card">
+    <div class="result-image-wrap">
+      <img src="{{ url_for('static', filename='uploads/' ~ scan.image_filename) }}" alt="MRI scan" class="result-image"/>
+      <div class="result-image-badge" style="background:{{ color }}22;border-color:{{ color }}55;color:{{ color }}">
+        <i class="fa-solid {% if scan.result_class==0 %}fa-circle-check{% else %}fa-circle-exclamation{% endif %}"></i>
+        {{ label }}
+      </div>
+    </div>
+    <div class="result-meta">
+      <div class="meta-row"><span>Patient</span><strong>{{ scan.patient_name }}</strong></div>
+      {% if scan.patient_id %}<div class="meta-row"><span>Patient ID</span><strong>{{ scan.patient_id }}</strong></div>{% endif %}
+      <div class="meta-row"><span>Analysed by</span><strong>{{ scan.doctor_name }}</strong></div>
+      <div class="meta-row"><span>Scan date</span><strong>{{ scan.created_at.strftime('%d %b %Y, %H:%M') }}</strong></div>
+      {% if scan.notes %}<div class="meta-row notes"><span>Notes</span><strong>{{ scan.notes }}</strong></div>{% endif %}
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="result-right">
+    <!-- Verdict -->
+    <div class="card verdict-card" style="border-left:4px solid {{ color }}">
+      <div class="verdict-header">
+        <div class="verdict-icon" style="background:{{ color }}22;color:{{ color }}">
+          <i class="fa-solid {% if scan.result_class==0 %}fa-brain{% else %}fa-circle-exclamation{% endif %} fa-2x"></i>
+        </div>
+        <div>
+          <h2 class="verdict-label" style="color:{{ color }}">{{ label }}</h2>
+          <p class="verdict-conf">Confidence: <strong>{{ scan.confidence }}%</strong></p>
+        </div>
+      </div>
+      <div class="verdict-desc">
+        {% if scan.result_class == 0 %}
+          No cerebral microbleed signatures were detected in this scan. Regular monitoring is recommended.
+        {% elif scan.result_class == 1 %}
+          Mild microbleed indicators detected. Consider follow-up imaging within 3–6 months.
+        {% elif scan.result_class == 2 %}
+          Moderate microbleed load detected. Clinical evaluation and neurological assessment recommended.
+        {% else %}
+          Severe microbleed burden detected. Urgent specialist review is strongly advised.
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Probability bars -->
+    <div class="card prob-card">
+      <div class="card-header"><h3><i class="fa-solid fa-chart-bar"></i> Class Probabilities</h3></div>
+      <div class="prob-bars">
+        {% for i in range(4) %}
+        <div class="prob-row">
+          <span class="prob-label">{{ class_names[i] }}</span>
+          <div class="prob-bar-track">
+            <div class="prob-bar-fill" style="width:{{ (scan.probabilities[i]*100)|round(1) }}%;background:{{ class_colors[i] }}"
+                 data-val="{{ (scan.probabilities[i]*100)|round(1) }}"></div>
+          </div>
+          <span class="prob-pct" style="color:{{ class_colors[i] }}">{{ (scan.probabilities[i]*100)|round(1) }}%</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Disclaimer -->
+    <div class="disclaimer-box">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <p>This analysis is AI-assisted and must be reviewed by a qualified radiologist or neurologist before any clinical decision is made.</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('delete_scan', scan_id=scan.id) }}"
+          onsubmit="return confirm('Delete this scan record and image permanently?')">
+      <button type="submit" class="btn-danger"><i class="fa-solid fa-trash"></i> Delete Record</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Animate probability bars on load
+document.querySelectorAll('.prob-bar-fill').forEach(bar=>{
+  const w = bar.style.width;
+  bar.style.width = '0';
+  setTimeout(()=>{ bar.style.transition='width 0.8s cubic-bezier(.4,0,.2,1)'; bar.style.width=w; }, 200);
+});
+</script>
+{% endblock %}

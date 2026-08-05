@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Scan History — NeuroScan AI{% endblock %}
+{% block page_title %}Scan History{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-h1">Scan History</h1>
+    <p class="page-sub">{{ total }} total record{{ 's' if total!=1 }}</p>
+  </div>
+  <a href="{{ url_for('upload') }}" class="btn-primary"><i class="fa-solid fa-plus"></i> New Scan</a>
+</div>
+
+<!-- Search -->
+<div class="card search-card">
+  <form method="GET" class="search-form">
+    <div class="search-input-wrap">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" name="q" placeholder="Search by patient name or ID…" value="{{ search }}"/>
+    </div>
+    <button type="submit" class="btn-primary">Search</button>
+    {% if search %}<a href="{{ url_for('history') }}" class="btn-secondary">Clear</a>{% endif %}
+  </form>
+</div>
+
+<!-- Table -->
+<div class="card table-card">
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Image</th>
+          <th>Patient</th>
+          <th>Patient ID</th>
+          <th>Result</th>
+          <th>Confidence</th>
+          <th>Uploaded by</th>
+          <th>Date</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for scan in scans %}
+        <tr>
+          <td class="td-id">{{ scan.id }}</td>
+          <td class="td-img">
+            <img src="{{ url_for('static', filename='uploads/' ~ scan.image_filename) }}" alt="scan" class="table-thumb"/>
+          </td>
+          <td class="td-name">{{ scan.patient_name }}</td>
+          <td class="td-pid">{{ scan.patient_id or '—' }}</td>
+          <td>
+            <span class="badge" style="background:{{ class_colors[scan.result_class] }}22;color:{{ class_colors[scan.result_class] }};border:1px solid {{ class_colors[scan.result_class] }}44">
+              {{ class_names[scan.result_class] }}
+            </span>
+          </td>
+          <td>
+            <div class="conf-cell">
+              <div class="conf-bar-track">
+                <div class="conf-bar" style="width:{{ scan.confidence }}%;background:{{ class_colors[scan.result_class] }}"></div>
+              </div>
+              <span style="color:{{ class_colors[scan.result_class] }}">{{ scan.confidence }}%</span>
+            </div>
+          </td>
+          <td>{{ scan.username }}</td>
+          <td class="td-date">{{ scan.created_at.strftime('%d %b %Y') }}</td>
+          <td class="td-actions">
+            <a href="{{ url_for('result', scan_id=scan.id) }}" class="tbl-btn tbl-btn-view" title="View"><i class="fa-solid fa-eye"></i></a>
+            <form method="POST" action="{{ url_for('delete_scan', scan_id=scan.id) }}" style="display:inline"
+                  onsubmit="return confirm('Delete this scan?')">
+              <button type="submit" class="tbl-btn tbl-btn-del" title="Delete"><i class="fa-solid fa-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="empty-row"><i class="fa-solid fa-image"></i> No scans found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if pages > 1 %}
+  <div class="pagination">
+    {% if page > 1 %}
+    <a href="{{ url_for('history', page=page-1, q=search) }}" class="page-btn"><i class="fa-solid fa-chevron-left"></i></a>
+    {% endif %}
+    {% for p in range(1, pages+1) %}
+    <a href="{{ url_for('history', page=p, q=search) }}" class="page-btn {% if p==page %}active{% endif %}">{{ p }}</a>
+    {% endfor %}
+    {% if page < pages %}
+    <a href="{{ url_for('history', page=page+1, q=search) }}" class="page-btn"><i class="fa-solid fa-chevron-right"></i></a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
